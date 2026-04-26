@@ -1,8 +1,14 @@
 ﻿using EmpMngtAPI.DataModel;
+using EmpMngtAPI.Helper;
+using EmpMngtAPI.Model.ResponseModel;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -20,6 +26,31 @@ namespace EmpMngtAPI.Controllers
         {
             _authContext = context;
             _configuration = configuration;
+        }
+
+        [HttpPost("authenticate")]
+        public async Task<IActionResult> Authenticate([FromBody] UserTbl userobj)
+        {
+            if (userobj == null)
+                return BadRequest();
+            var user = await _authContext.Users.FirstOrDefaultAsync(x => x.UserName == userobj.UserName);
+            if (user == null)
+                return BadRequest(new { Message = "Invalid UserName" });
+
+            if (!PasswordHasher.VerifyPassword(userobj.Password, user.Password))
+                return BadRequest(new { Message = "Password is InCorrect" });
+            user.Token = CreateJWT(user);
+            var newAccessToken = user.Token;
+            var newRefreshToken = CreateRefreshToken();
+            user.RefreshToken = newRefreshToken;
+            user.RefreshTokenExpiryTime = DateTime.Now.AddDays(5);
+            await _authContext.SaveChangesAsync();
+            return Ok(new TokenApiDto()
+            {
+                 AccessToken = newAccessToken, 
+                 RefreshToken = newRefreshToken
+            });
+
         }
 
         [HttpPost("register")]
@@ -42,9 +73,9 @@ namespace EmpMngtAPI.Controllers
                 return BadRequest(new { Message = pass });
 
 
-            //userObj.Password = PasswordHasher.HashPassword(userObj.Password);
-            //userObj.Password = userObj.Password;
+            userObj.Password = PasswordHasher.HashPassword(userObj.Password);
             userObj.Role = "User";
+            userObj.Token = "";
 
             await _authContext.Users.AddAsync(userObj);
             await _authContext.SaveChangesAsync();
@@ -74,10 +105,40 @@ namespace EmpMngtAPI.Controllers
             return sb.ToString();
         }
 
-        //public static string HashPassword(string password)
-        //{
-        //    byte[] salt; 
-            
-        //}
+        private string CreateJWT(UserTbl user)
+        {
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.Name, user.UserName),
+                new Claim(ClaimTypes.Role, user.Role)
+            };
+
+            var token = new JwtSecurityToken(
+
+                issuer: _configuration["Jwt:Issuer"],
+                audience: _configuration["Jwt:Audience"],
+                claims: claims,
+                expires: DateTime.Now.AddMinutes(45),
+                signingCredentials: creds
+                );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        private string CreateRefreshToken()
+        {
+            var tokenBytes = RandomNumberGenerator.GetBytes(64);
+            var refreshToken = Convert.ToBase64String(tokenBytes);
+
+            var tokenInUserTbl = _authContext.Users.Any(a => a.RefreshToken == refreshToken);
+            if (tokenInUserTbl)
+            {
+                return CreateRefreshToken();
+            }
+            return refreshToken;
+        }
     }
 }
