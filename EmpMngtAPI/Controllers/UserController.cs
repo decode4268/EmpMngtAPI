@@ -1,5 +1,6 @@
 ﻿using EmpMngtAPI.DataModel;
 using EmpMngtAPI.Helper;
+using EmpMngtAPI.Model.RequestModel;
 using EmpMngtAPI.Model.ResponseModel;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -29,7 +30,7 @@ namespace EmpMngtAPI.Controllers
         }
 
         [HttpPost("authenticate")]
-        public async Task<IActionResult> Authenticate([FromBody] UserTbl userobj)
+        public async Task<IActionResult> Authenticate([FromBody] LoginDTO userobj)
         {
             if (userobj == null)
                 return BadRequest();
@@ -47,8 +48,8 @@ namespace EmpMngtAPI.Controllers
             await _authContext.SaveChangesAsync();
             return Ok(new TokenApiDto()
             {
-                 AccessToken = newAccessToken, 
-                 RefreshToken = newRefreshToken
+                AccessToken = newAccessToken,
+                RefreshToken = newRefreshToken
             });
 
         }
@@ -85,7 +86,6 @@ namespace EmpMngtAPI.Controllers
                 Message = "User Registered"
             });
         }
-
 
         private Task<bool> CheckUsernameExistAsync(string? username)
             => _authContext.Users.AnyAsync(x => x.UserName == username);
@@ -139,6 +139,78 @@ namespace EmpMngtAPI.Controllers
                 return CreateRefreshToken();
             }
             return refreshToken;
+        }
+
+        [HttpPost("send-reset-email/{email}")]
+        public async Task<IActionResult> ResetPasswordEmail(string email)
+        {
+            try
+            {
+                var user = await _authContext.Users.Where(x => x.Email == email).FirstOrDefaultAsync();
+                if (user == null)
+                {
+                    return NotFound(new
+                    {
+                        StatusCode = 404,
+                        Message = "Email Doesn't Exist!"
+                    });
+
+                }
+                var tokenBytes = RandomNumberGenerator.GetBytes(64);
+                var emailToken = Convert.ToBase64String(tokenBytes);
+                user.ResetPasswordToken = emailToken;
+                user.RefreshTokenExpiryTime = DateTime.Now.AddMinutes(15);
+                string from = _configuration["EmailSetting:From"];
+                var emailModel = new EmailModel(email, "Reset Password", EmailBody.EmailStringBody(email, emailToken));
+
+                //_emailService.SendEmail(emailModel);
+                _authContext.Entry(user).State = EntityState.Modified;
+                await _authContext.SaveChangesAsync();
+                return Ok(new
+                {
+                    StatusCode = 200,
+                    Message = "Email Sent Successfully !"
+                });
+            }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword(ResetPasswordDTO resetPasswordDTO)
+        {
+            var newToken = resetPasswordDTO.EmailToken.Replace(" ", "+");
+            var user = await _authContext.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Email == resetPasswordDTO.Email);
+            if (user == null)
+            {
+                return NotFound(new
+                {
+                    StatusCode = 404,
+                    Message = "Email Doesn't Exist!"
+                });
+            }
+            var tokenCode = user.ResetPasswordToken;
+            DateTime? emailTokenExpiry = user.ResetPasswordExpiry;
+            if (tokenCode != resetPasswordDTO.EmailToken || emailTokenExpiry < DateTime.Now)
+            {
+                return BadRequest(new
+
+                {
+                    StatusCode = 400,
+                    Message = "Invalid reset link"
+                });
+            }
+            user.Password = PasswordHasher.HashPassword(resetPasswordDTO.NewPassword);
+            _authContext.Entry(user).State = EntityState.Modified;
+            await _authContext.SaveChangesAsync();
+            return Ok(new
+            {
+                StatusCode = 200,
+                Message = "Password Reset Successfully"
+            });
         }
     }
 }
