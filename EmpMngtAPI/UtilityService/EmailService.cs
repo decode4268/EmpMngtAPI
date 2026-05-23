@@ -1,6 +1,8 @@
 ﻿using EmpMngtAPI.Model.RequestModel;
+using MailKit.Net.Smtp;
+using MailKit.Security;
 using MimeKit;
-using System.Net.Mail;
+
 
 namespace EmpMngtAPI.UtilityService
 {
@@ -23,24 +25,29 @@ namespace EmpMngtAPI.UtilityService
                 Text = string.Format(emailModel.Content)
             };
 
-            //using (var client = new SmtpClient())
-            //{
-            //    try
-            //    {
-            //        client.Connect(_config["EmailSetting:SmtpServer"], 465, true);
-            //        client.Authenticate(_config["EmailSetting:From"], _config["EmailSetting:Password"]);
-            //        client.Send(emailMessage);
-            //    }
-            //    catch (Exception ex)
-            //    {
-            //        throw;
-            //    }
-            //    finally
-            //    {
-            //        client.Disconnect(true);
-            //        client.Dispose();
-            //    }
-            //}
+            using (var smtp = new SmtpClient())
+            {
+                try
+                {
+                    //client.Connect(_config["EmailSetting:SmtpServer"], 465, true);
+                    //client.Authenticate(_config["EmailSetting:From"], _config["EmailSetting:Password"]);
+                    //client.Send(emailMessage);
+                    smtp.ServerCertificateValidationCallback = (s, c, h, e) => true;
+                    smtp.Connect("smtp.gmail.com", 465, SecureSocketOptions.StartTls);
+                    smtp.Authenticate(_config["EmailSetting:From"], _config["EmailSetting:Password"]);
+                    smtp.Send(emailMessage);
+                    smtp.Disconnect(true);
+                }
+                catch (Exception ex)
+                {
+                    throw;
+                }
+                finally
+                {
+                    smtp.Disconnect(true);
+                    smtp.Dispose();
+                }
+            }
         }
     }
 }

@@ -2,6 +2,7 @@
 using EmpMngtAPI.Helper;
 using EmpMngtAPI.Model.RequestModel;
 using EmpMngtAPI.Model.ResponseModel;
+using EmpMngtAPI.UtilityService;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -23,10 +24,12 @@ namespace EmpMngtAPI.Controllers
         // Type : REST, SOAP.. etc.
         private readonly AppDbContext _authContext;
         private readonly IConfiguration _configuration;
-        public UserController(AppDbContext context, IConfiguration configuration)
+        private readonly IEmailService _emailService;
+        public UserController(AppDbContext context, IConfiguration configuration, IEmailService emailService)
         {
             _authContext = context;
             _configuration = configuration;
+            _emailService = emailService;
         }
 
         [HttpPost("authenticate")]
@@ -163,7 +166,7 @@ namespace EmpMngtAPI.Controllers
                 string from = _configuration["EmailSetting:From"];
                 var emailModel = new EmailModel(email, "Reset Password", EmailBody.EmailStringBody(email, emailToken));
 
-                //_emailService.SendEmail(emailModel);
+                _emailService.SendEmail(emailModel);
                 _authContext.Entry(user).State = EntityState.Modified;
                 await _authContext.SaveChangesAsync();
                 return Ok(new
