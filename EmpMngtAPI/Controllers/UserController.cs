@@ -78,7 +78,7 @@ namespace EmpMngtAPI.Controllers
 
 
             userObj.Password = PasswordHasher.HashPassword(userObj.Password);
-            userObj.Role = "User";
+            userObj.Role = "HR";
             userObj.Token = "";
 
             await _authContext.Users.AddAsync(userObj);

@@ -2,7 +2,7 @@
 
 namespace EmpMngtAPI.DataModel
 {
-    public class UserTbl
+    public class UserTbl  : BaseModel
     {
         [Key]
         public int Id { get; set; }
@@ -16,6 +16,6 @@ namespace EmpMngtAPI.DataModel
         public string? RefreshToken { get; set; }  
         public DateTime? RefreshTokenExpiryTime { get; set; }  
         public string? ResetPasswordToken{ get; set; }  
-        public DateTime? ResetPasswordExpiry{ get; set; }  
+        public DateTime? ResetPasswordExpiry{ get; set; }
     }
 }

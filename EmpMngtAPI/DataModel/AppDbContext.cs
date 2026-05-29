@@ -10,6 +10,10 @@ namespace EmpMngtAPI.DataModel
         }
 
         public DbSet<UserTbl> Users { get; set; }
+        public DbSet<RoleTbl> RoleTbls { get; set; }
+        public DbSet<UserRoleMapTbl> userRoleMapTbls { get; set; }
+        public DbSet<LocationTbl> locationTbls { get; set; }
+        public DbSet<JobPositionTbl> jobPositionTbls  { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

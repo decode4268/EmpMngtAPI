@@ -25,19 +25,47 @@ namespace EmpMngtAPI.UtilityService
                 Text = string.Format(emailModel.Content)
             };
 
+            //using (var smtp = new SmtpClient())
+            //{
+            //    try
+            //    {
+            //        //client.Connect(_config["EmailSetting:SmtpServer"], 465, true);
+            //        //client.Authenticate(_config["EmailSetting:From"], _config["EmailSetting:Password"]);
+            //        //client.Send(emailMessage);
+            //        smtp.ServerCertificateValidationCallback = (s, c, h, e) => true;
+            //        smtp.Connect("smtp.gmail.com", 465, SecureSocketOptions.StartTls);
+            //        smtp.Authenticate(_config["EmailSetting:From"], _config["EmailSetting:Password"]);
+            //        smtp.Send(emailMessage);
+            //        smtp.Disconnect(true);
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        throw;
+            //    }
+            //    finally
+            //    {
+            //        smtp.Disconnect(true);
+            //        smtp.Dispose();
+            //    }
+            //}
             using (var smtp = new SmtpClient())
             {
                 try
                 {
-                    //client.Connect(_config["EmailSetting:SmtpServer"], 465, true);
-                    //client.Authenticate(_config["EmailSetting:From"], _config["EmailSetting:Password"]);
-                    //client.Send(emailMessage);
                     smtp.ServerCertificateValidationCallback = (s, c, h, e) => true;
-                    smtp.Connect("smtp.gmail.com", 465, SecureSocketOptions.StartTls);
-                    smtp.Authenticate(_config["EmailSetting:From"], _config["EmailSetting:Password"]);
+
+                    // Gmail requires SSL on port 465
+                    //smtp.Connect("smtp.gmail.com", 465, SecureSocketOptions.SslOnConnect);
+                    smtp.Connect("smtp.gmail.com", 587, SecureSocketOptions.StartTls);
+
+
+                    // Authenticate with your Gmail address and App Password
+                    smtp.Authenticate(_config["EmailSetting:UserName"], _config["EmailSetting:Password"]);
+
                     smtp.Send(emailMessage);
                     smtp.Disconnect(true);
                 }
+
                 catch (Exception ex)
                 {
                     throw;
@@ -48,6 +76,8 @@ namespace EmpMngtAPI.UtilityService
                     smtp.Dispose();
                 }
             }
+
+
         }
     }
 }
