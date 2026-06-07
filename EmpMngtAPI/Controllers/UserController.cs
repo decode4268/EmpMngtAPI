@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -78,7 +79,8 @@ namespace EmpMngtAPI.Controllers
 
 
             userObj.Password = PasswordHasher.HashPassword(userObj.Password);
-            userObj.Role = "HR";
+            var roleData = _authContext.RoleTbls.FirstOrDefault(x => x.RoleName == "HR");
+            userObj.Role = roleData.ToString() ?? "HR";
             userObj.Token = "";
 
             await _authContext.Users.AddAsync(userObj);
@@ -115,8 +117,10 @@ namespace EmpMngtAPI.Controllers
 
             var claims = new[]
             {
-                new Claim(ClaimTypes.Name, user.UserName),
-                new Claim(ClaimTypes.Role, user.Role)
+                //new Claim(ClaimTypes.Name, user.UserName),
+                //new Claim(ClaimTypes.Role, user.Role)
+                new Claim("name", user.UserName),
+            new Claim("role", user.Role)
             };
 
             var token = new JwtSecurityToken(

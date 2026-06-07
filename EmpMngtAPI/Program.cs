@@ -59,6 +59,26 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 
 var app = builder.Build();
 
+// Seed the Role in the Table.
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    // Ensure database is created (optional if migrations are already applied)
+    context.Database.Migrate();
+
+    // Seed roles if not present
+    if (!context.RoleTbls.Any())
+    {
+        context.RoleTbls.AddRange(
+            new RoleTbl { RoleName = "Admin" },
+            new RoleTbl { RoleName = "User" },
+            new RoleTbl { RoleName = "HR" }
+        );
+        context.SaveChanges();
+    }
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

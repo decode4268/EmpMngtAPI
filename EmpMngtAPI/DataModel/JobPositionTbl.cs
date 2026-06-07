@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using EmpMngtAPI.Helper;
+using System.ComponentModel.DataAnnotations;
 
 namespace EmpMngtAPI.DataModel
 {
@@ -8,7 +9,7 @@ namespace EmpMngtAPI.DataModel
         public int Id { get; set; }
         public string PositionName { get; set; }
         public int LocationId { get; set; }   // FK
-        public int Status { get; set; } // make the enum for status => Active=1, Pending=2, Delete=3
+        public JobPositionStatus Status { get; set; } // make the enum for status => Active=1, Pending=2, Delete=3
         public string CTC { get; set; }
     }
 }
