@@ -9,5 +9,8 @@ namespace EmpMngtAPI.DataModel
         public string Value { get; set; }
         public string? Description { get; set; }
 
+        // Navigation Property for reverse relationship
+        public ICollection<JobPositionTbl> JobPositions { get; set; }
+
     }
 }
